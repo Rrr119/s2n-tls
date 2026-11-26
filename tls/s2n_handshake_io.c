@@ -32,6 +32,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls13_key_schedule.h"
 #include "utils/s2n_bitmap.h"
+#include "utils/s2n_diagnostics.h"
 #include "utils/s2n_events.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -1788,6 +1789,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
          * that may overwrite them (e.g. s2n_connection_get_key_exchange_group). */
         int saved_errno = s2n_errno;
         struct s2n_debug_info saved_debug_info = _s2n_debug_info;
+        POSIX_GUARD_RESULT(s2n_diagnostics_failure(conn));
         POSIX_GUARD_RESULT(s2n_event_handshake_populate(conn, &conn->handshake_event));
         POSIX_GUARD_RESULT(s2n_event_handshake_send(conn, &conn->handshake_event));
         s2n_errno = saved_errno;

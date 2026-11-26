@@ -57,6 +57,23 @@ struct s2n_event_handshake {
      * The error name can be retrieved via s2n_strerror_name(error_code).
      */
     int error_code;
+    /* Structured failure classification and safe diagnostic metadata. */
+    int failure_category;
+    int failure_type;
+    int error_category;
+    int error_type;
+    int failure_class;
+    int stage;
+    int handshake_stage;
+    int diagnostic_level;
+    int severity;
+    int alert_code;
+    const char *failure_category_name;
+    const char *error_category_name;
+    const char *error_type_name;
+    const char *stage_name;
+    const char *diagnostic_message;
+    const char *safe_message;
 };
 
 typedef void (*s2n_event_on_handshake_cb)(struct s2n_connection *conn, void *subscriber, struct s2n_event_handshake *event);

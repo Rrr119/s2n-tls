@@ -288,6 +288,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->cert_authorities));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->initial));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_free(&conn->secure));
+    POSIX_GUARD(s2n_free_object((uint8_t **) &conn->last_diagnostic,
+            sizeof(struct s2n_handshake_diagnostic_event)));
     POSIX_GUARD(s2n_free_object((uint8_t **) &conn, sizeof(struct s2n_connection)));
 
     return 0;
@@ -597,6 +599,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
     POSIX_GUARD(s2n_free(&conn->cookie));
     POSIX_GUARD(s2n_free(&conn->cert_authorities));
+    POSIX_GUARD(s2n_free_object((uint8_t **) &conn->last_diagnostic,
+            sizeof(struct s2n_handshake_diagnostic_event)));
 
     /* Allocate memory for handling handshakes */
     POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));

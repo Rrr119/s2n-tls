@@ -178,6 +178,374 @@ typedef enum {
  */
 S2N_API extern int s2n_error_get_type(int error);
 
+struct s2n_config;
+struct s2n_connection;
+
+/**
+ * Severity of a structured handshake diagnostic event.
+ */
+typedef enum {
+    S2N_DIAGNOSTIC_LEVEL_NONE = 0,
+    S2N_DIAGNOSTIC_LEVEL_DEBUG = 1,
+    S2N_DIAGNOSTIC_LEVEL_INFO = 2,
+    S2N_DIAGNOSTIC_LEVEL_WARNING = 3,
+    S2N_DIAGNOSTIC_LEVEL_ERROR = 4,
+} s2n_diagnostic_level;
+
+typedef s2n_diagnostic_level s2n_handshake_diagnostic_level;
+
+#define S2N_HANDSHAKE_DIAGNOSTIC_DEBUG   S2N_DIAGNOSTIC_LEVEL_DEBUG
+#define S2N_HANDSHAKE_DIAGNOSTIC_INFO    S2N_DIAGNOSTIC_LEVEL_INFO
+#define S2N_HANDSHAKE_DIAGNOSTIC_WARNING S2N_DIAGNOSTIC_LEVEL_WARNING
+#define S2N_HANDSHAKE_DIAGNOSTIC_WARN    S2N_DIAGNOSTIC_LEVEL_WARNING
+#define S2N_HANDSHAKE_DIAGNOSTIC_ERROR   S2N_DIAGNOSTIC_LEVEL_ERROR
+#define S2N_HANDSHAKE_DIAGNOSTIC_LEVEL_NONE    S2N_DIAGNOSTIC_LEVEL_NONE
+#define S2N_HANDSHAKE_DIAGNOSTIC_LEVEL_DEBUG   S2N_DIAGNOSTIC_LEVEL_DEBUG
+#define S2N_HANDSHAKE_DIAGNOSTIC_LEVEL_INFO    S2N_DIAGNOSTIC_LEVEL_INFO
+#define S2N_HANDSHAKE_DIAGNOSTIC_LEVEL_WARNING S2N_DIAGNOSTIC_LEVEL_WARNING
+#define S2N_HANDSHAKE_DIAGNOSTIC_LEVEL_ERROR   S2N_DIAGNOSTIC_LEVEL_ERROR
+
+/**
+ * Coarse handshake stage associated with a diagnostic event.
+ */
+typedef enum {
+    S2N_HANDSHAKE_STAGE_UNKNOWN = 0,
+    S2N_HANDSHAKE_STAGE_INIT = 1,
+    S2N_HANDSHAKE_STAGE_CLIENT_HELLO = 2,
+    S2N_HANDSHAKE_STAGE_SERVER_HELLO = 3,
+    S2N_HANDSHAKE_STAGE_HELLO_RETRY = 4,
+    S2N_HANDSHAKE_STAGE_ENCRYPTED_EXTENSIONS = 5,
+    S2N_HANDSHAKE_STAGE_CERTIFICATE_REQUEST = 6,
+    S2N_HANDSHAKE_STAGE_CERTIFICATE = 7,
+    S2N_HANDSHAKE_STAGE_CERTIFICATE_VERIFY = 8,
+    S2N_HANDSHAKE_STAGE_KEY_EXCHANGE = 9,
+    S2N_HANDSHAKE_STAGE_FINISHED = 10,
+    S2N_HANDSHAKE_STAGE_COMPLETE = 11,
+} s2n_handshake_stage;
+
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_UNKNOWN              S2N_HANDSHAKE_STAGE_UNKNOWN
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_INIT                 S2N_HANDSHAKE_STAGE_INIT
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_CLIENT_HELLO         S2N_HANDSHAKE_STAGE_CLIENT_HELLO
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_SERVER_HELLO         S2N_HANDSHAKE_STAGE_SERVER_HELLO
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_HELLO_RETRY          S2N_HANDSHAKE_STAGE_HELLO_RETRY
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_ENCRYPTED_EXTENSIONS \
+    S2N_HANDSHAKE_STAGE_ENCRYPTED_EXTENSIONS
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_CERTIFICATE_REQUEST \
+    S2N_HANDSHAKE_STAGE_CERTIFICATE_REQUEST
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_CERTIFICATE          S2N_HANDSHAKE_STAGE_CERTIFICATE
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_CERTIFICATE_VERIFY \
+    S2N_HANDSHAKE_STAGE_CERTIFICATE_VERIFY
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_KEY_EXCHANGE         S2N_HANDSHAKE_STAGE_KEY_EXCHANGE
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_FINISHED             S2N_HANDSHAKE_STAGE_FINISHED
+#define S2N_HANDSHAKE_DIAGNOSTIC_STAGE_COMPLETE            S2N_HANDSHAKE_STAGE_COMPLETE
+
+/**
+ * Actionable failure family used by handshake diagnostics. The first three
+ * families are the stable classifications for certificate, algorithm, and
+ * protocol-version failures.
+ */
+typedef enum {
+    S2N_HANDSHAKE_FAILURE_NONE = 0,
+    S2N_HANDSHAKE_FAILURE_UNKNOWN = 1,
+    S2N_HANDSHAKE_FAILURE_CERTIFICATE = 2,
+    S2N_HANDSHAKE_FAILURE_ALGORITHM = 3,
+    S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION = 4,
+    S2N_HANDSHAKE_FAILURE_IO = 5,
+    S2N_HANDSHAKE_FAILURE_CLOSED = 6,
+    S2N_HANDSHAKE_FAILURE_BLOCKED = 7,
+    S2N_HANDSHAKE_FAILURE_PEER_ALERT = 8,
+    S2N_HANDSHAKE_FAILURE_PROTOCOL = 9,
+    S2N_HANDSHAKE_FAILURE_INTERNAL = 10,
+    S2N_HANDSHAKE_FAILURE_USAGE = 11,
+} s2n_handshake_failure_category;
+
+typedef s2n_handshake_failure_category s2n_handshake_failure_type;
+typedef s2n_handshake_failure_category s2n_failure_category;
+typedef s2n_handshake_failure_category s2n_failure_type;
+typedef s2n_handshake_failure_category s2n_handshake_failure_category_t;
+typedef s2n_handshake_failure_category s2n_handshake_failure_type_t;
+typedef s2n_handshake_stage s2n_handshake_stage_t;
+typedef s2n_diagnostic_level s2n_diagnostic_level_t;
+
+#define S2N_HANDSHAKE_FAILURE_UNCLASSIFIED       S2N_HANDSHAKE_FAILURE_UNKNOWN
+#define S2N_HANDSHAKE_FAILURE_CERT                S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_HANDSHAKE_FAILURE_CIPHER              S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_HANDSHAKE_FAILURE_ALGORITHM_MISMATCH S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_HANDSHAKE_FAILURE_VERSION             S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+#define S2N_HANDSHAKE_FAILURE_NETWORK_IO          S2N_HANDSHAKE_FAILURE_IO
+#define S2N_HANDSHAKE_FAILURE_ALERT               S2N_HANDSHAKE_FAILURE_PEER_ALERT
+
+#define S2N_HANDSHAKE_ERROR_NONE             S2N_HANDSHAKE_FAILURE_NONE
+#define S2N_HANDSHAKE_ERROR_UNKNOWN          S2N_HANDSHAKE_FAILURE_UNKNOWN
+#define S2N_HANDSHAKE_ERROR_CERTIFICATE      S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_HANDSHAKE_ERROR_ALGORITHM        S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_HANDSHAKE_ERROR_PROTOCOL_VERSION S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+
+#define S2N_FAILURE_NONE             S2N_HANDSHAKE_FAILURE_NONE
+#define S2N_FAILURE_UNKNOWN          S2N_HANDSHAKE_FAILURE_UNKNOWN
+#define S2N_FAILURE_CERTIFICATE      S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_FAILURE_ALGORITHM        S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_FAILURE_PROTOCOL_VERSION S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+#define S2N_FAILURE_IO               S2N_HANDSHAKE_FAILURE_IO
+#define S2N_FAILURE_PROTOCOL         S2N_HANDSHAKE_FAILURE_PROTOCOL
+
+#define S2N_DIAGNOSTIC_UNKNOWN                  S2N_HANDSHAKE_FAILURE_UNKNOWN
+#define S2N_DIAGNOSTIC_CERTIFICATE              S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_DIAGNOSTIC_ALGORITHM                S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_DIAGNOSTIC_PROTOCOL_VERSION         S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+#define S2N_DIAGNOSTIC_CERTIFICATE_ERROR        S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_DIAGNOSTIC_ALGORITHM_ERROR          S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_DIAGNOSTIC_PROTOCOL_VERSION_ERROR  S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+#define S2N_HANDSHAKE_DIAGNOSTIC_CERTIFICATE    S2N_HANDSHAKE_FAILURE_CERTIFICATE
+#define S2N_HANDSHAKE_DIAGNOSTIC_ALGORITHM      S2N_HANDSHAKE_FAILURE_ALGORITHM
+#define S2N_HANDSHAKE_DIAGNOSTIC_PROTOCOL_VERSION \
+    S2N_HANDSHAKE_FAILURE_PROTOCOL_VERSION
+
+typedef s2n_handshake_stage s2n_handshake_phase;
+
+#define S2N_HANDSHAKE_PHASE_UNKNOWN              S2N_HANDSHAKE_STAGE_UNKNOWN
+#define S2N_HANDSHAKE_PHASE_INIT                 S2N_HANDSHAKE_STAGE_INIT
+#define S2N_HANDSHAKE_PHASE_CLIENT_HELLO         S2N_HANDSHAKE_STAGE_CLIENT_HELLO
+#define S2N_HANDSHAKE_PHASE_SERVER_HELLO         S2N_HANDSHAKE_STAGE_SERVER_HELLO
+#define S2N_HANDSHAKE_PHASE_HELLO_RETRY          S2N_HANDSHAKE_STAGE_HELLO_RETRY
+#define S2N_HANDSHAKE_PHASE_ENCRYPTED_EXTENSIONS S2N_HANDSHAKE_STAGE_ENCRYPTED_EXTENSIONS
+#define S2N_HANDSHAKE_PHASE_CERTIFICATE_REQUEST  S2N_HANDSHAKE_STAGE_CERTIFICATE_REQUEST
+#define S2N_HANDSHAKE_PHASE_CERTIFICATE          S2N_HANDSHAKE_STAGE_CERTIFICATE
+#define S2N_HANDSHAKE_PHASE_CERTIFICATE_VERIFY   S2N_HANDSHAKE_STAGE_CERTIFICATE_VERIFY
+#define S2N_HANDSHAKE_PHASE_KEY_EXCHANGE         S2N_HANDSHAKE_STAGE_KEY_EXCHANGE
+#define S2N_HANDSHAKE_PHASE_FINISHED             S2N_HANDSHAKE_STAGE_FINISHED
+#define S2N_HANDSHAKE_PHASE_COMPLETE             S2N_HANDSHAKE_STAGE_COMPLETE
+
+typedef s2n_handshake_failure_category s2n_handshake_error_category;
+typedef s2n_handshake_failure_category s2n_handshake_error_type;
+typedef s2n_handshake_failure_category s2n_error_category;
+
+/**
+ * Safe, structured handshake diagnostic data.
+ *
+ * Every string field is either NULL or points to static library storage.
+ * Events intentionally contain only error codes, stage metadata, and static
+ * descriptions; they never contain secrets, private keys, or handshake key
+ * material.
+ */
+struct s2n_handshake_diagnostic_event {
+    uint32_t size;
+    uint32_t abi_version;
+    uint64_t timestamp_ns;
+
+    s2n_handshake_diagnostic_level level;
+    s2n_handshake_diagnostic_level severity;
+    s2n_handshake_diagnostic_level diagnostic_level;
+
+    s2n_handshake_stage stage;
+    s2n_handshake_stage handshake_stage;
+
+    s2n_handshake_failure_category category;
+    s2n_handshake_failure_category failure_category;
+    s2n_handshake_failure_category failure_type;
+    s2n_handshake_failure_category classification;
+
+    int error_code;
+    int code;
+    int error;
+    int s2n_error;
+    int s2n_error_code;
+    int error_type;
+
+    int alert_code;
+    int alert;
+    int tls_alert;
+    int protocol_version;
+
+    const char *level_name;
+    const char *severity_name;
+    const char *stage_name;
+    const char *category_name;
+    const char *failure_type_name;
+    const char *error_name;
+    const char *error_message;
+    const char *message;
+    const char *diagnostic_message;
+    const char *description;
+    const char *source;
+
+    uint64_t timestamp;
+};
+
+typedef struct s2n_handshake_diagnostic_event s2n_handshake_diagnostic_event;
+typedef struct s2n_handshake_diagnostic_event s2n_handshake_diagnostic;
+typedef struct s2n_handshake_diagnostic_event s2n_handshake_diagnostics;
+typedef struct s2n_handshake_diagnostic_event s2n_diagnostic_event;
+typedef struct s2n_handshake_diagnostic_event s2n_diagnostic;
+typedef struct s2n_handshake_diagnostic_event s2n_handshake_diagnostic_t;
+typedef struct s2n_handshake_diagnostic_event s2n_handshake_diagnostics_t;
+typedef struct s2n_handshake_diagnostic_event s2n_diagnostic_t;
+
+#define S2N_HANDSHAKE_DIAGNOSTIC_ABI_VERSION 1u
+
+/**
+ * Returns a short stable name for a diagnostic level.
+ */
+S2N_API extern const char *s2n_diagnostic_level_name(s2n_diagnostic_level level);
+S2N_API extern const char *s2n_handshake_diagnostic_level_name(s2n_handshake_diagnostic_level level);
+
+/**
+ * Returns a short stable name for a handshake stage.
+ */
+S2N_API extern const char *s2n_handshake_stage_name(s2n_handshake_stage stage);
+
+/**
+ * Returns a short stable name for a failure category. The certificate,
+ * algorithm, and protocol-version names are exactly "certificate",
+ * "algorithm", and "protocol_version".
+ */
+S2N_API extern const char *s2n_handshake_failure_category_name(s2n_handshake_failure_category category);
+S2N_API extern const char *s2n_handshake_failure_type_name(s2n_handshake_failure_type type);
+S2N_API extern const char *s2n_failure_category_name(s2n_failure_category category);
+S2N_API extern const char *s2n_failure_type_name(s2n_failure_type type);
+S2N_API extern const char *s2n_handshake_failure_category_string(s2n_handshake_failure_category category);
+
+/**
+ * Maps an s2n error code to a coarse handshake failure category.
+ */
+S2N_API extern s2n_handshake_failure_category s2n_error_get_handshake_failure_category(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_error_get_handshake_failure_type(int error_code);
+S2N_API extern s2n_handshake_failure_category s2n_error_get_failure_category(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_error_get_failure_type(int error_code);
+S2N_API extern s2n_handshake_failure_category s2n_classify_handshake_error(int error_code);
+S2N_API extern s2n_handshake_failure_category s2n_handshake_classify_error(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_error_to_handshake_failure_type(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_error_code_to_failure_type(int error_code);
+S2N_API extern s2n_handshake_failure_category s2n_get_handshake_failure_category(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_get_handshake_failure_type(int error_code);
+S2N_API extern s2n_error_category s2n_get_error_category(int error_code);
+S2N_API extern s2n_handshake_error_category s2n_get_handshake_error_category(int error_code);
+S2N_API extern s2n_error_category s2n_error_get_category(int error_code);
+S2N_API extern s2n_failure_category s2n_get_failure_category(int error_code);
+S2N_API extern s2n_failure_type s2n_get_failure_type(int error_code);
+S2N_API extern s2n_handshake_failure_type s2n_handshake_failure_type_from_error(int error_code);
+S2N_API extern s2n_failure_type s2n_failure_type_from_error(int error_code);
+
+/**
+ * Maps an s2n error code and optional TLS alert code to a failure category.
+ * Use -1 for alert_code when no alert is available.
+ */
+S2N_API extern s2n_handshake_failure_category s2n_handshake_diagnostic_classify(int error_code, int alert_code);
+S2N_API extern s2n_handshake_failure_category s2n_handshake_diagnostics_classify(int error_code, int alert_code);
+S2N_API extern s2n_handshake_failure_category s2n_diagnose_handshake_error(int error_code);
+S2N_API extern int s2n_handshake_diagnostic_init_from_error(
+        s2n_handshake_diagnostic_event *diagnostic,
+        int error_code);
+
+/**
+ * Formats a one-line, key=value diagnostic. The output contains only safe
+ * metadata and static error descriptions.
+ */
+S2N_API extern int s2n_handshake_diagnostic_event_describe(
+        const s2n_handshake_diagnostic_event *diagnostic,
+        char *output,
+        size_t output_size);
+
+/**
+ * Observer callback for structured handshake diagnostics.
+ */
+typedef void (*s2n_handshake_diagnostic_callback)(
+        struct s2n_connection *conn,
+        void *context,
+        s2n_handshake_diagnostic_event *diagnostic);
+
+typedef s2n_handshake_diagnostic_callback s2n_handshake_diagnostic_event_callback;
+typedef s2n_handshake_diagnostic_callback s2n_diagnostic_callback;
+
+/**
+ * Simple observer form: only the event and caller context.
+ */
+typedef void (*s2n_handshake_diagnostic_simple_callback)(
+        s2n_handshake_diagnostic_event *diagnostic,
+        void *context);
+
+/**
+ * Registers a structured diagnostic callback on a config. A NULL callback
+ * clears the primary callback.
+ */
+S2N_API extern int s2n_config_set_handshake_diagnostic_callback(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_handshake_diagnostic_event_callback(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_handshake_diagnostics_callback(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_diagnostic_callback(
+        struct s2n_config *config,
+        s2n_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_handshake_diagnostic_cb(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_handshake_diagnostics_cb(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_diagnostics_cb(
+        struct s2n_config *config,
+        s2n_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_config_set_handshake_diagnostic_simple_callback(
+        struct s2n_config *config,
+        s2n_handshake_diagnostic_simple_callback callback,
+        void *context);
+
+typedef void (*s2n_event_on_diagnostic_cb)(
+        struct s2n_connection *conn,
+        void *subscriber,
+        s2n_handshake_diagnostic_event *diagnostic);
+
+S2N_API extern int s2n_config_set_diagnostic_event(
+        struct s2n_config *config,
+        s2n_event_on_diagnostic_cb callback);
+S2N_API extern int s2n_config_set_handshake_diagnostic_event(
+        struct s2n_config *config,
+        s2n_event_on_diagnostic_cb callback);
+
+/**
+ * Connection-level diagnostic callback. If set, it is invoked in addition to
+ * callbacks configured on the connection's config.
+ */
+S2N_API extern int s2n_connection_set_handshake_diagnostic_callback(
+        struct s2n_connection *conn,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_connection_set_diagnostic_callback(
+        struct s2n_connection *conn,
+        s2n_diagnostic_callback callback,
+        void *context);
+S2N_API extern int s2n_connection_set_handshake_diagnostic_cb(
+        struct s2n_connection *conn,
+        s2n_handshake_diagnostic_callback callback,
+        void *context);
+
+/**
+ * Returns the last diagnostic emitted for this connection, or NULL if none.
+ * The pointer is owned by the connection and remains valid until the next
+ * diagnostic or connection free.
+ */
+S2N_API extern const s2n_handshake_diagnostic_event *s2n_connection_get_last_handshake_diagnostic(
+        struct s2n_connection *conn);
+S2N_API extern const s2n_diagnostic_event *s2n_connection_get_diagnostic(struct s2n_connection *conn);
+S2N_API extern s2n_handshake_failure_category s2n_connection_get_handshake_failure_category(
+        struct s2n_connection *conn);
+S2N_API extern s2n_handshake_failure_type s2n_connection_get_handshake_failure_type(
+        struct s2n_connection *conn);
+S2N_API extern s2n_error_category s2n_connection_get_error_category(struct s2n_connection *conn);
+S2N_API extern s2n_failure_category s2n_connection_get_failure_category(struct s2n_connection *conn);
+S2N_API extern s2n_failure_type s2n_connection_get_failure_type(struct s2n_connection *conn);
+
 /**
  * An opaque configuration object, used by clients and servers for holding cryptographic certificates, keys and preferences.
  */

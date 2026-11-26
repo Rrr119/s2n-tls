@@ -406,6 +406,11 @@ struct s2n_connection {
     uint8_t recv_key_updated;
 
     struct s2n_event_handshake handshake_event;
+
+    s2n_handshake_diagnostic_callback diagnostic_callback;
+    void *diagnostic_ctx;
+    bool diagnostic_callback_set;
+    struct s2n_handshake_diagnostic_event *last_diagnostic;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
